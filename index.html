@@ -167,19 +167,9 @@ for i in range(len(code)):
             replacements.append(["==", i, j])
         elif code[i][j] == "=":
             replacements.append(["=", i, j])
-
-for val in sorted(replacements, reverse=True, key=lambda o: (o[1], o[2])):
-    k, i, j = val
-    if k == "==":
-        code[i] = list(code[i])
-        code[i][j] = "="
-        code[i][j + 1] = " "
-        code[i] = "".join(code[i])
-    elif k == "=":
-        code[i] = list(code[i])
-        code[i][j] = "-"
-        code[i].insert(j, "<")
-        code[i] = "".join(code[i])
+    code[i] = code[i].replace("==", "__TEMP__")
+    code[i] = code[i].replace("=", "<-")
+    code[i] = code[i].replace("__TEMP__", "=")
 
 "".join(code)
       `;
