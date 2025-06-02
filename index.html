@@ -156,6 +156,8 @@ for i in range(len(code)):
     if code[i].rstrip().endswith(":"):
         code[i] = code[i].rstrip()
         code[i] = code[i][:-1] + "\\n"
+    if code[i].strip().startswith("IF "):
+        code[i] = code[i].rstrip() + "THEN \\n" 
 
 "".join(code)
       `;
