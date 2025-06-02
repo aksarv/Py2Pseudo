@@ -159,6 +159,29 @@ for i in range(len(code)):
     if code[i].strip().startswith("IF ") or code[i].strip().startswith("ELSE IF "):
         code[i] = code[i].rstrip() + " THEN\\n" 
 
+replacements = {"==": [], "=": []}
+
+for i in range(len(code)):
+    for j in range(len(code[i])):
+        if j < len(code[i]) - 1 and code[i][j] + code[i][j + 1] == "==":
+            replacements["=="].append([i, j])
+        elif code[i][j] == "=":
+            replacements["="].append([i, j])
+
+for k, v in replacements.items():
+    for val in v:
+        i, j = val
+        if k == "==":
+            code[i] = list(code[i])
+            code[i][j] = "="
+            code[i][j + 1] = " "
+            code[i] = "".join(code[i])
+        elif k == "=":
+            code[i] = list(code[i])
+            code[i][j] = "-"
+            code[i].insert(j, "<")
+            code[i] = "".join(code[i])
+
 "".join(code)
       `;
             try {
