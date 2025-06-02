@@ -61,10 +61,8 @@ if not code[-1].strip().endswith("\\n"):
     code[-1] += "\\n"
 
 substitutions = {
-    r"=": "<-",
     r"//": "DIV",
     r"%": "MOD",
-    r"==": "=",
     r"!=": "≠",
     r">=": "≥",
     r"<=": "≤",
@@ -158,6 +156,21 @@ for i in range(len(code)):
     if code[i].rstrip().endswith(":"):
         code[i] = code[i].rstrip()
         code[i] = code[i][:-1] + "\\n"
+
+for i in range(len(code)):
+    line = code[i]
+    for j in range(len(line)):
+        if code[i][j] == "=":
+            if code[i][j + 1] == "=":
+                code[i] = list(code[i])
+                del code[i][j]
+                code[i] = "".join(code[i])
+            else:
+                code[i] = list(code[i])
+                del code[i][j]
+                code[i].insert(j, '-')
+                code[i].insert(j, '<')
+                code[i] = "".join(code[i])
 
 "".join(code)
       `;
