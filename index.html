@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Py2Pseudo</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 1rem;
+            font-family: monospace;
+        }
+
+        pre {
+            background: #f0f0f0;
+            padding: 1rem;
+            white-space: pre-wrap;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 200px;
+            padding: 0.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Python to Pseudocode Transpiler</h1>
+    <em>Note that listcomps don't fully work and OOP isn't supported</em>
+    <br>
+    <label for="input">Enter Python code:</label>
+    <textarea id="input"></textarea>
+    <button onclick="transpile()">Transpile</button>
+    <label for="output">Pseudocode Output:</label>
+    <pre id="output">Transpiled pseudocode will appear here...</pre>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <script>
+        async function transpile() {
+            const pyodide = await loadPyodide();
+            const userCode = document.getElementById("input").value;
+            const transpiler = `
+import re
+
+code = """${userCode.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$/g, "\\$")}""".splitlines(True)
+
+if not code[-1].strip().endswith("\\n"):
+    code[-1] += "\\n"
+
+substitutions = {
+    r"=": "<-",
+    r"//": "DIV",
+    r"%": "MOD",
+    r"==": "=",
+    r"!=": "≠",
+    r">=": "≥",
+    r"<=": "≤",
+    r"(?<![a-zA-Z0-9])and(?![a-zA-Z])": "AND",
+    r"(?<![a-zA-Z0-9])or(?![a-zA-Z])": "OR",
+    r"(?<![a-zA-Z0-9])not(?![a-zA-Z])": "NOT",
+    r"(?<![a-zA-Z0-9])len\\s*\\(": "LEN(",
+    r"(?<![a-zA-Z0-9])int\\s*\\(": "STRING_TO_INT(",
+    r"(?<![a-zA-Z0-9])float\\s*\\(": "STRING_TO_REAL(",
+    r"(?<![a-zA-Z0-9])ord\\s*\\(": "CHAR_TO_CODE(",
+    r"(?<![a-zA-Z0-9])chr\\s*\\(": "CODE_TO_CHAR(",
+    r"random\\.randint\\s*\\(": "RANDOM_INT(",
+    r"(?<![a-zA-Z0-9])randint\\s*\\(": "RANDOM_INT(",
+    r"(?<![a-zA-Z0-9])while ": "WHILE ",
+    r"(?<![a-zA-Z0-9])for ": "FOR ",
+    r"(?<![a-zA-Z0-9])if ": "IF ",
+    r"(?<![a-zA-Z0-9])else:": "ELSE:",
+    r" else ": " ELSE ",
+    r"(?<![a-zA-Z0-9])elif ": "ELSE IF ",
+    r"(?<![a-zA-Z0-9])def ": "SUBROUTINE ",
+    r"(?<![a-zA-Z0-9])return ": "RETURN ",
+    r"(?<![a-zA-Z0-9])import ": "IMPORT ",
+    r" as ": " AS ",
+    r"(?<![a-zA-Z0-9])try ": "TRY ",
+    r"(?<![a-zA-Z0-9])except ": "EXCEPT ",
+    r"(?<![a-zA-Z0-9])from ": "FROM ",
+    r"(?<![a-zA-Z0-9])with ": "WITH ",
+    r" in ": " IN "
+}
+
+def indent_count(string):
+    return len(re.match(r"^\\s*", string).group())
+
+def get_all_indices(el, lst):
+    return [i for i, x in enumerate(lst) if x == el]
+
+def get_valid_args(arg_str):
+    arg_lst = list(arg_str)
+    commas = get_all_indices(",", arg_lst) + [len(arg_lst)]
+    valid_args = []
+    while True:
+        for c in commas:
+            arg = arg_str[:c]
+            try:
+                compile(arg.strip(), '<string>', 'eval')
+                valid_args.append(arg.strip())
+                arg_str = arg_str[c + 1:]
+                commas = get_all_indices(",", list(arg_str)) + [len(arg_str)]
+                break
+            except SyntaxError:
+                pass
+        else:
+            break
+    if arg_str.strip():
+        valid_args.append(arg_str.strip())
+    return valid_args
+
+insertions = []
+
+for lineno, line in enumerate(code):
+    i = indent_count(line)
+    if any([line.strip().startswith(x) for x in ["for ", "while ", "def ", "if "]]):
+        start = lineno + 1
+        while start < len(code) and (indent_count(code[start]) > i or (indent_count(code[start]) == i and (code[start].strip().split()[0] == "elif" or code[start].strip().split(":")[0] == "else") and line.strip().startswith("if ")) or (indent_count(code[start]) <= i and (not code[start].strip() or code[start].strip().startswith("#")))):
+            start += 1
+        insertions.append([start, " " * i + "END" + (line.strip().split(" ")[0].upper() if not line.strip().startswith("def ") else "SUBROUTINE") + "\\n"])
+    if line.strip().startswith("for "):
+        line = line.strip()
+        if " in range(" in line:
+            it_var = line[4:line.index(" in range(")]
+            arg_string = line[line.index(" in range(") + 10:len(line) - 2]
+            args = get_valid_args(arg_string)
+            if len(args) == 3:
+                code[lineno] = " " * i + f"FOR {it_var} <- {args[0]} TO {args[1]} STEP {args[2]}\\n"
+            elif len(args) == 2:
+                code[lineno] = " " * i + f"FOR {it_var} <- {args[0]} TO {args[1]}\\n"
+            elif len(args) == 1:
+                code[lineno] = " " * i + f"FOR {it_var} <- 0 TO {args[0]}\\n"
+
+for ind, el in sorted(insertions, reverse=True, key=lambda l: l[0]):
+    code.insert(ind, el)
+
+substitutions = sorted(list(substitutions.items()), reverse=True, key=lambda m: len(m[0]))
+
+for s in substitutions:
+    a, b = s
+    for i in range(len(code)):
+        code[i] = re.sub(a, b, code[i])
+
+for i in range(len(code)):
+    if code[i].rstrip().endswith(":"):
+        code[i] = code[i].rstrip()
+        code[i] = code[i][:-1] + "\\n"
+
+"".join(code)
+      `;
+            try {
+                const result = await pyodide.runPythonAsync(transpiler);
+                document.getElementById("output").textContent = result;
+            } catch (err) {
+                document.getElementById("output").textContent = "Error:\n" + err;
+            }
+        }
+    </script>
+</body>
+
+</html>
