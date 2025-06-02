@@ -38,7 +38,7 @@
 </head>
 
 <body>
-    <h1>Python to Pseudocode Transpiler</h1>
+    <h1>Python to Pseudocode Transpiler*</h1>
     <em>Note that listcomps don't fully work and OOP isn't supported</em>
     <br>
     <label for="input">Enter Python code:</label>
@@ -159,14 +159,7 @@ for i in range(len(code)):
     if code[i].strip().startswith("IF ") or code[i].strip().startswith("ELSE IF "):
         code[i] = code[i].rstrip() + " THEN\\n" 
 
-replacements = []
-
 for i in range(len(code)):
-    for j in range(len(code[i])):
-        if j < len(code[i]) - 1 and code[i][j] + code[i][j + 1] == "==":
-            replacements.append(["==", i, j])
-        elif code[i][j] == "=":
-            replacements.append(["=", i, j])
     code[i] = code[i].replace("==", "__TEMP__")
     code[i] = code[i].replace("=", "<-")
     code[i] = code[i].replace("__TEMP__", "=")
