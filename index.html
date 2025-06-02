@@ -157,21 +157,6 @@ for i in range(len(code)):
         code[i] = code[i].rstrip()
         code[i] = code[i][:-1] + "\\n"
 
-for i in range(len(code)):
-    line = code[i]
-    for j in range(len(line)):
-        if code[i][j] == "=":
-            if j != len(line) - 1 and code[i][j + 1] == "=":
-                code[i] = list(code[i])
-                del code[i][j]
-                code[i] = "".join(code[i])
-            else:
-                code[i] = list(code[i])
-                del code[i][j]
-                code[i].insert(j, '-')
-                code[i].insert(j, '<')
-                code[i] = "".join(code[i])
-
 "".join(code)
       `;
             try {
